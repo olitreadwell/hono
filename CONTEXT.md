@@ -22,7 +22,8 @@
 - (trivial pass) hunting typos, dead links, stale command references, wrong doc lines
 
 ## Gap ledger (dedupe — READ FIRST, never re-pick)
-- 2026-08-26 test-coverage sweep — outcome skipped (no-genuine-fix-this-cycle) — no clean verifiable bug; all real issues had open PRs or maintainer-declined resolutions
+- 2026-08-26 test-coverage sweep
+- 2026-09-03 trivial/minor-fix pass (loop-trivial) — outcome pr-opened (PR #4) — 4 genuine typo fixes in test comments/descriptions (cookie 'ignore'->'ignored', 'thi'->'this'; jsx 'rended'->'rendered' x2); fork CI substantive checks green, only Coverage fails on missing CODECOV_TOKEN (fork artifact) — outcome skipped (no-genuine-fix-this-cycle) — no clean verifiable bug; all real issues had open PRs or maintainer-declined resolutions
 
 ## Mined gaps (discovered, not yet attempted)
 - (this run) trivial/minor-fix pass per config trivial_fix_rules
