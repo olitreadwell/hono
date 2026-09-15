@@ -233,7 +233,7 @@ describe('Cookie Middleware', () => {
     app.get('/set-secure-prefix-cookie', (c) => {
       setCookie(c, 'delicious_cookie', 'macha', {
         prefix: 'secure',
-        secure: false, // this will be ignore
+        secure: false, // this will be ignored
       })
       return c.text('Set secure prefix cookie')
     })
