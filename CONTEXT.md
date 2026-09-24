@@ -1,5 +1,5 @@
 # honojs/hono context
-> refreshed 2026-09-09 | upstream default: main @ e7b38ee4
+> refreshed 2026-09-24 | upstream default: main @ 8dcd52b9
 
 ## Identity & policies
 - upstream: honojs/hono, default branch main, primary language TypeScript, English-first (yes)
@@ -12,20 +12,22 @@
 ## Conventions (verified from merged PRs)
 - branch naming: `fix/<kebab-description>` (dominant), also `perf/...`
 - commit style: Conventional Commits `type(scope): subject (#PR)`
-- test command: `bun run test`; format/lint: `bun run format:fix && bun run lint:fix`
-- package manager: Bun (`bun install --frozen-lockfile`)
+- package manager: pnpm (migrated from Bun, PR #5433, 2026-09-24; lockfile `pnpm-lock.yaml`, `pnpm install`)
+- test command: `pnpm run test` (tsc -p tsconfig.spec.json + vitest); format: `pnpm run format` (oxfmt, replaced prettier PR #5435); lint: `pnpm run lint`
+- CI: vitest projects for node/workerd/fastly/lambda/lambda-edge; 11 pre-existing logger/color env-dependent failures on clean main (color.test.ts, helper/dev, middleware/logger) — known, not introduced by our runs
 
 ## Maintainer picture
-- Yusuke Wada (@yusukebe) founder; active maintainer team; fast external merges (108 external merges/60d)
+- Yusuke Wada (@yusukebe) founder; active maintainer team; fast external merges (108 external merges/60d); all fresh issues get claimed by open PRs within days
 
 ## Issue-area health
-- (trivial pass) hunting typos, dead links, stale command references, wrong doc lines
+- Router semantics family kept being contested/decided by maintainers (LinearRouter/PatternRouter/TrieRouter param-segment and strict-slash disagreements) — avoid, they are either claimed or still under maintainer decision
+- Feature/enhancement issues are long-lived discussion threads, not pick targets
 
 ## Gap ledger (dedupe — READ FIRST, never re-pick)
 - 2026-08-26 test-coverage sweep
 - 2026-09-03 trivial/minor-fix pass (loop-trivial) — outcome pr-opened (PR #4) — 4 genuine typo fixes in test comments/descriptions (cookie 'ignore'->'ignored', 'thi'->'this'; jsx 'rended'->'rendered' x2); fork CI substantive checks green, only Coverage fails on missing CODECOV_TOKEN (fork artifact) — outcome skipped (no-genuine-fix-this-cycle) — no clean verifiable bug; all real issues had open PRs or maintainer-declined resolutions
-- 2026-09-09 trivial/minor-fix pass (loop-trivial) — outcome skipped (no-genuine-fix-this-cycle) — exhaustive codespell + common-misspelling regex + duplicate-word + ~165 external URL checks all clean; upstream e7b38ee4 (2026-09-08 "docs: fix typos") already fixed the remaining typos (Multibyes->Multibytes, behaviour->behavior, curly quotes, root->route JSDoc); PR #4 already covered the only other typos. No genuine, meaning-preserving trivial fixes remain this cycle.
-
-- 2026-09-09 (2nd cycle, loop-trivial) — outcome skipped (no-genuine-fix-this-cycle) — independent re-verification of the same upstream HEAD (e7b38ee4, unchanged): codespell clean, curated common-misspelling regex clean, duplicate-word scan only false positives, all 40 external MD urls reachable (npm 403 bot-block / shields timeout transient), internal relative links + anchors valid, documented commands match package.json scripts and benchmark files exist. No new upstream fixes landed. Fewer than 3 genuine, meaning-preserving trivial fixes remain -> skip, no PR.
+- 2026-09-09 trivial/minor-fix pass — skipped (no-genuine-fix-this-cycle) — codespell + misspelling regex + duplicate-word + ~165 URL checks clean; upstream already fixed remaining typos; PR #4 covered the rest
+- 2026-09-09 (2nd, loop-trivial) — skipped (no-genuine-fix-this-cycle) — re-verified same upstream HEAD clean; no new fixes; fewer than 3 genuine fixes -> skip
+- 2026-09-24 repo-audit cycle — outcome skipped (no-genuine-fix-this-cycle) — no maintainer-engaged open issue survived (all fresh issues #5345/#5406/#5422/#5369/#5370 claimed by open PRs #5367/#5348, #5410, #5423, #5404, #5318; #5432/#5431 triage, unengaged). repo-audit matrix: clean-code (no TODOs; middleware/util impls clean), security (`pnpm audit --prod` no vulns), deps (no known vulns), tests/CI (green except 11 known env logger/color failures), docs (prior sweeps clean). No novel, verifiable, uncontested bug or gap found. Honest skip per loop_policy — no PR opened.
 ## Mined gaps (discovered, not yet attempted)
-- (this run) trivial/minor-fix pass per config trivial_fix_rules
+- (this run) repo-audit cycle — no verifiable gap survived dedupe + filters; all self-found candidates (router semantics, jsx-renderer streaming headers, method-override body re-read) either claimed, contested, or intentional
