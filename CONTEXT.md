@@ -1,5 +1,5 @@
 # honojs/hono context
-> refreshed 2026-09-24 | upstream default: main @ 8dcd52b9
+> refreshed 2026-09-30 | upstream default: main @ afb2068c
 
 ## Identity & policies
 - upstream: honojs/hono, default branch main, primary language TypeScript, English-first (yes)
@@ -29,5 +29,6 @@
 - 2026-09-09 trivial/minor-fix pass — skipped (no-genuine-fix-this-cycle) — codespell + misspelling regex + duplicate-word + ~165 URL checks clean; upstream already fixed remaining typos; PR #4 covered the rest
 - 2026-09-09 (2nd, loop-trivial) — skipped (no-genuine-fix-this-cycle) — re-verified same upstream HEAD clean; no new fixes; fewer than 3 genuine fixes -> skip
 - 2026-09-24 repo-audit cycle — outcome skipped (no-genuine-fix-this-cycle) — no maintainer-engaged open issue survived (all fresh issues #5345/#5406/#5422/#5369/#5370 claimed by open PRs #5367/#5348, #5410, #5423, #5404, #5318; #5432/#5431 triage, unengaged). repo-audit matrix: clean-code (no TODOs; middleware/util impls clean), security (`pnpm audit --prod` no vulns), deps (no known vulns), tests/CI (green except 11 known env logger/color failures), docs (prior sweeps clean). No novel, verifiable, uncontested bug or gap found. Honest skip per loop_policy — no PR opened.
+- 2026-09-30 trivial/minor-fix pass (loop-trivial) — outcome pr-opened (PR #23) — 3 genuine fixes: `ReadbleStream`->`ReadableStream` x2 in `adapters/aws-lambda/test/index.test.ts` comments; `docs/MAINTAINING.md` `test:adapters` note said `bun test` but only `@hono/bun` uses bun's runner (others vitest via `vp test`). Full-repo sweeps clean (typos-cli, codespell, markdown/GitHub/source URL checks, hono.dev anchors, exports-vs-files, duplicate-word regex); no other genuine trivial error found. Fork CI `Adapters` green (docs-only/CI-config paths skip main ci.yml); autofix success.
 ## Mined gaps (discovered, not yet attempted)
 - (this run) repo-audit cycle — no verifiable gap survived dedupe + filters; all self-found candidates (router semantics, jsx-renderer streaming headers, method-override body re-read) either claimed, contested, or intentional
