@@ -170,10 +170,10 @@ There are two BREAKING CHANGES.
 
 **DO NOT** use `c.req.parseBody` for parsing **JSON**, **text**, or **ArrayBuffer**.
 
-`c.req.parseBody` now only parses FormData with content type `multipart/form` or `application/x-www-form-urlencoded`. If you want to parse JSON, text, or ArrayBuffer, use `c.req.json()`, `c.req.text()`, or `c.req.arrayBuffer()`.
+`c.req.parseBody` now only parses FormData with content type `multipart/form-data` or `application/x-www-form-urlencoded`. If you want to parse JSON, text, or ArrayBuffer, use `c.req.json()`, `c.req.text()`, or `c.req.arrayBuffer()`.
 
 ```ts
-// `multipart/form` or `application/x-www-form-urlencoded`
+// `multipart/form-data` or `application/x-www-form-urlencoded`
 const data = await c.req.parseBody()
 
 const jsonData = await c.req.json() // for JSON body
