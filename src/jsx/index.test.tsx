@@ -234,12 +234,12 @@ describe('render to string', () => {
     expect((await template.toString()).toString()).toBe('<span>0</span><span>1</span>')
   })
 
-  it('Empty elements are rended without closing tag', () => {
+  it('Empty elements are rendered without closing tag', () => {
     const template = <input />
     expect(template.toString()).toBe('<input/>')
   })
 
-  it('Empty elements with children are rended with children and closing tag', () => {
+  it('Empty elements with children are rendered with children and closing tag', () => {
     const template = <link>https://example.com</link>
     expect(template.toString()).toBe('<link>https://example.com</link>')
   })

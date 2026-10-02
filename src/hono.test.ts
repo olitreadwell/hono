@@ -1646,7 +1646,7 @@ describe('Error handling in middleware', () => {
       return c.text(err.message, 400)
     })
 
-    it('Should handle the error thrown in `notFound()``', async () => {
+    it('Should handle the error thrown in `notFound()`', async () => {
       const res = await app.request('http://localhost/')
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Error in Not Found')
@@ -2396,7 +2396,7 @@ describe('Parse Body', () => {
 })
 
 describe('Both two middleware returning response', () => {
-  it('Should return correct Content-Type`', async () => {
+  it('Should return correct Content-Type', async () => {
     const app = new Hono()
     app.use('*', async (c, next) => {
       await next()
