@@ -22,7 +22,7 @@ From the repository root:
 
 ```sh
 pnpm run build:adapters   # build every adapter
-pnpm run test:adapters    # tsc + bun test for every adapter
+pnpm run test:adapters    # tsc + vitest for every adapter
 pnpm --filter @hono/bun run test
 ```
 
