@@ -6,6 +6,7 @@
 import type { Context, ExecutionContext } from '../../context'
 import { routePath } from '../../helper/route'
 import type { MiddlewareHandler } from '../../types'
+import { splitPath, splitRoutingPath } from '../../utils/url'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ApplicationHandler = (request: Request, ...args: any) => Response | Promise<Response>
@@ -18,11 +19,29 @@ type MountOptions =
       replaceRequest?: MountReplaceRequest | false
     }
 
+// A mount path may contain params or regex segments, e.g. `/api/:tenant/*`.
+// Their placeholders are not the same length as the values they match, so the
+// length of the route path cannot be used to cut the prefix off the request path.
+// Count the segments matched by the prefix in the request path instead.
+const getPathPrefixLength = (pathPrefix: string, requestPath: string): number => {
+  if (!/[:*]/.test(pathPrefix)) {
+    return pathPrefix.length
+  }
+
+  const segments = splitRoutingPath(pathPrefix)
+  const requestSegments = splitPath(requestPath)
+  let length = 0
+  for (let i = 0, len = segments.length; i < len; i++) {
+    length += (requestSegments[i]?.length ?? 0) + 1 // + 1 for the slash
+  }
+  return length
+}
+
 const defaultReplaceRequest = (c: Context): Request => {
   // e.g. `/another-app/*` (basePath is already merged) -> `/another-app`
   const pathPrefix = routePath(c).replace(/\/\*$/, '')
   const url = new URL(c.req.raw.url)
-  url.pathname = c.req.path.slice(pathPrefix.length) || '/'
+  url.pathname = c.req.path.slice(getPathPrefixLength(pathPrefix, c.req.path)) || '/'
   return new Request(url, c.req.raw)
 }
 
