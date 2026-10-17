@@ -172,6 +172,60 @@ describe('mount()', () => {
     })
   })
 
+  describe('With params in the mount path', () => {
+    const anotherApp = (req: Request) => new Response(getPath(req))
+
+    it('Should strip a param mount prefix', async () => {
+      const app = new Hono()
+      app.all('/api/:tenant/*', mount(anotherApp))
+
+      const res = await app.request('/api/acme-corp/hello')
+
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('/hello')
+    })
+
+    it('Should strip a regex param mount prefix', async () => {
+      const app = new Hono()
+      app.all('/api/:id{[0-9]+}/*', mount(anotherApp))
+
+      const res = await app.request('/api/123456/hello')
+
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('/hello')
+    })
+
+    it('Should strip a mount prefix with a param followed by a static segment', async () => {
+      const app = new Hono()
+      app.all('/api/:tenant/v1/*', mount(anotherApp))
+
+      const res = await app.request('/api/acme-corp/v1/hello')
+
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('/hello')
+    })
+
+    it('Should strip a mount prefix with multiple params', async () => {
+      const app = new Hono()
+      app.all('/api/:tenant/:version/*', mount(anotherApp))
+
+      const res = await app.request('/api/acme-corp/v2/hello')
+
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('/hello')
+    })
+
+    it('Should send `/` when the request path matches only the mount prefix', async () => {
+      const app = new Hono()
+      app.all('/api/:tenant/*', mount(anotherApp))
+
+      const res = await app.request('/api/acme-corp')
+
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('/')
+    })
+  })
+
   describe('With fetch', () => {
     const anotherApp = async (req: Request, env: {}, executionContext: ExecutionContext) => {
       const path = getPath(req)
