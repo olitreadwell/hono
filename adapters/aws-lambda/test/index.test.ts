@@ -967,7 +967,7 @@ describe('streamHandle function', () => {
     mockReadableStream.push('3\n')
     mockReadableStream.push(null) // EOF
 
-    // @ts-expect-error should this be a ReadbleStream?
+    // @ts-expect-error should this be a ReadableStream?
     await handler(event, mockReadableStream, vi.fn())
 
     const chunks = []
@@ -1012,7 +1012,7 @@ describe('streamHandle function', () => {
     mockReadableStream.push('data: Message\ndata: It is 1\n\n')
     mockReadableStream.push(null) // EOF
 
-    // @ts-expect-error should this be a ReadbleStream?
+    // @ts-expect-error should this be a ReadableStream?
     await handler(event, mockReadableStream, vi.fn())
 
     const chunks = []

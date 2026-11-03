@@ -294,7 +294,7 @@ export class HonoRequest<P extends string = '/', I extends Input['out'] = {}> {
   /**
    * `.bytes()` parses the request body as a `Uint8Array`.
    *
-   * @see {@link https://hono.dev/docs/api/request#bytes}
+   * @see {@link https://hono.dev/docs/api/request#arraybuffer}
    *
    * @example
    * ```ts
