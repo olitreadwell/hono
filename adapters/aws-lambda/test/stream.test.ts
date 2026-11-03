@@ -55,6 +55,10 @@ describe('streamHandle function', () => {
     return c.text('Cookies Set')
   })
 
+  app.get('/lambda-context', (c) => {
+    return c.json(c.env.lambdaContext)
+  })
+
   const handler = streamHandle(app)
 
   it('to write multiple cookies into the headers', async () => {
@@ -71,5 +75,29 @@ describe('streamHandle function', () => {
 
     const metadata = JSON.parse(stream.chunks[0].toString())
     expect(metadata.cookies).toEqual(['cookie1=value1', 'cookie2=value2'])
+  })
+
+  it('to expose the Lambda context as c.env.lambdaContext', async () => {
+    const event = {
+      headers: { 'content-type': 'application/json' },
+      rawPath: '/lambda-context',
+      rawQueryString: '',
+      body: null,
+      isBase64Encoded: false,
+      requestContext: testApiGatewayRequestContextV2,
+    }
+
+    const lambdaContext = {
+      functionName: 'myLambdaFunction',
+      awsRequestId: 'the-request-id',
+    } as LambdaContext
+
+    const stream = await handler(event, lambdaContext, vi.fn())
+
+    const body = stream.chunks
+      .slice(1)
+      .map((chunk: Buffer) => chunk.toString())
+      .join('')
+    expect(JSON.parse(body).awsRequestId).toBe('the-request-id')
   })
 })
