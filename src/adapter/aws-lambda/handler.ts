@@ -178,7 +178,7 @@ export const streamHandle = <
         const res = await app.fetch(req, {
           event,
           requestContext,
-          context,
+          lambdaContext: context,
         })
 
         const headers: Record<string, string> = {}
