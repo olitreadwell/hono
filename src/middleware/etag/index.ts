@@ -30,10 +30,8 @@ export const RETAINED_304_HEADERS = [
 const stripWeak = (tag: string) => tag.replace(/^W\//, '')
 
 function etagMatches(etag: string, ifNoneMatch: string | null) {
-  return (
-    ifNoneMatch != null &&
-    ifNoneMatch.split(',').some((t) => stripWeak(t.trim()) === stripWeak(etag))
-  )
+  const expected = stripWeak(etag)
+  return ifNoneMatch?.match(/"[^"]*"/g)?.some((tag) => tag === expected) ?? false
 }
 
 function initializeGenerator(
@@ -117,6 +115,7 @@ export const etag = (options?: ETagOptions): MiddlewareHandler => {
     const matched = ifNoneMatch === '*' || etagMatches(etag, ifNoneMatch)
 
     if (matched) {
+      await res.body?.cancel()
       c.res = new Response(null, {
         status: 304,
         statusText: 'Not Modified',

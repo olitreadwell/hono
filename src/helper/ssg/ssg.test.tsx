@@ -284,6 +284,26 @@ describe('toSSG function', () => {
     expect(fsMock.writeFile).toHaveBeenCalledWith('/tmp/out/index.html', expect.any(String))
   })
 
+  it('Should create the output directories again on a later run', async () => {
+    const app = new Hono()
+    app.get('/about/team', (c) => c.html('Hello, World!'))
+    const createFsMock = (): FileSystemModule => ({
+      writeFile: vi.fn(() => Promise.resolve()),
+      mkdir: vi.fn(() => Promise.resolve()),
+    })
+
+    const firstFsMock = createFsMock()
+    await toSSG(app, firstFsMock, { dir: './static-rerun' })
+    expect(firstFsMock.mkdir).toHaveBeenCalledWith('static-rerun/about', { recursive: true })
+
+    // The directory may have been removed between runs, e.g. by a clean step,
+    // so a later run must not assume that an earlier run's directories still exist.
+    const secondFsMock = createFsMock()
+    const result = await toSSG(app, secondFsMock, { dir: './static-rerun' })
+    expect(result.success).toBe(true)
+    expect(secondFsMock.mkdir).toHaveBeenCalledWith('static-rerun/about', { recursive: true })
+  })
+
   it('Should correctly generate files with the expected paths', async () => {
     app.get('/data', (c) =>
       c.text(JSON.stringify({ title: 'hono' }), 200, {
@@ -700,6 +720,26 @@ describe('saveContentToFile function', () => {
     expect(fsMock.writeFile).toHaveBeenCalledWith('static/html.html', yamlContent) // default + extensionMap
     expect(fsMock.writeFile).toHaveBeenCalledWith('static/atom.xml', yamlContent)
     expect(fsMock.writeFile).toHaveBeenCalledWith('static/rss.xml', yamlContent)
+  })
+
+  it('should determine the extension case-insensitively', async () => {
+    const htmlData = { routePath: '/html', content: 'Hello', mimeType: 'TEXT/HTML' }
+    const jsonData = { routePath: '/json', content: '{}', mimeType: 'APPLICATION/JSON' }
+    const xmlData = { routePath: '/xml', content: '<a/>', mimeType: 'APPLICATION/XML' }
+    const fooData = { routePath: '/foo', content: 'foo', mimeType: 'TEXT/X-FOO' }
+    const barData = { routePath: '/bar', content: 'bar', mimeType: 'TEXT/X-BAR' }
+
+    await saveContentToFile(Promise.resolve(htmlData), fsMock, './static')
+    await saveContentToFile(Promise.resolve(jsonData), fsMock, './static')
+    await saveContentToFile(Promise.resolve(xmlData), fsMock, './static')
+    await saveContentToFile(Promise.resolve(fooData), fsMock, './static', { 'text/x-foo': 'foo' })
+    await saveContentToFile(Promise.resolve(barData), fsMock, './static', { 'TEXT/X-BAR': 'bar' })
+
+    expect(fsMock.writeFile).toHaveBeenCalledWith('static/html.html', 'Hello')
+    expect(fsMock.writeFile).toHaveBeenCalledWith('static/json.json', '{}')
+    expect(fsMock.writeFile).toHaveBeenCalledWith('static/xml.xml', '<a/>')
+    expect(fsMock.writeFile).toHaveBeenCalledWith('static/foo.foo', 'foo')
+    expect(fsMock.writeFile).toHaveBeenCalledWith('static/bar.bar', 'bar')
   })
 
   it('should reject writing files outside outDir via path traversal', async () => {

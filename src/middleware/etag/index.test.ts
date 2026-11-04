@@ -472,6 +472,29 @@ describe('Etag Middleware', () => {
     })
   })
 
+  it('Should cancel the discarded body on 304', async () => {
+    let cancelled = false
+    const app = new Hono()
+    app.use('/etag/*', etag())
+    app.get('/etag/stream', (c) => {
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(new TextEncoder().encode('chunk'))
+        },
+        cancel() {
+          cancelled = true
+        },
+      })
+      return c.body(stream, 200, { ETag: '"stream-v1"' })
+    })
+
+    const res = await app.request('http://localhost/etag/stream', {
+      headers: { 'If-None-Match': '"stream-v1"' },
+    })
+    expect(res.status).toBe(304)
+    expect(cancelled).toBe(true)
+  })
+
   it('Should remove all non-retained headers on 304 without skipping any', async () => {
     const app = new Hono()
     app.use('/etag/*', etag())
@@ -499,5 +522,33 @@ describe('Etag Middleware', () => {
     expect(res2.headers.get('X-Custom-2')).toBeNull()
     expect(res2.headers.get('X-Custom-3')).toBeNull()
     expect(res2.headers.get('X-Custom-4')).toBeNull()
+  })
+})
+
+describe('ETag values containing commas', () => {
+  it.each([
+    ['"revision,1"', '"revision,1"'],
+    ['"revision,1"', 'W/"revision,1"'],
+    ['W/"revision,1"', '"other", "revision,1" , "last"'],
+    ['"revision,1"', '"other,2", W/"revision,1"'],
+  ])('matches %s against %s', async (tag, ifNoneMatch) => {
+    const app = new Hono()
+    app.use(etag())
+    app.get('/', (c) => c.text('cached content', 200, { ETag: tag }))
+    const res = await app.request('/', { headers: { 'If-None-Match': ifNoneMatch } })
+    expect(res.status).toBe(304)
+    expect(await res.text()).toBe('')
+    expect(res.headers.get('ETag')).toBe(tag)
+  })
+
+  it('does not match a portion of a quoted tag', async () => {
+    const app = new Hono()
+    app.use(etag())
+    app.get('/', (c) => c.text('cached content', 200, { ETag: '"revision"' }))
+    const res = await app.request('/', {
+      headers: { 'If-None-Match': '"revision,1", "other"' },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('cached content')
   })
 })
