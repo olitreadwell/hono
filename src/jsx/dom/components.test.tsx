@@ -4,7 +4,7 @@ import { ErrorBoundary as ErrorBoundaryDom, Suspense as SuspenseDom, render } fr
 import { ErrorBoundary as ErrorBoundaryCommon, Suspense as SuspenseCommon } from '..' // for common
 // run tests by old style jsx default
 // hono/jsx/jsx-runtime and hono/jsx/dom/jsx-runtime are tested in their respective settings
-import { use, useState } from '../hooks'
+import { use, useEffect, useState } from '../hooks'
 
 runner('Common', SuspenseCommon, ErrorBoundaryCommon)
 runner('DOM', SuspenseDom, ErrorBoundaryDom)
@@ -58,6 +58,90 @@ function runner(
         resolve(1)
         await new Promise((resolve) => setTimeout(resolve))
         expect(root.innerHTML).toBe('<p>1</p>')
+      })
+
+      it('keeps attributes and runs effects again when children suspend again', async () => {
+        const log: string[] = []
+        let setPromise: (p: Promise<string>) => void = () => {}
+        const Child = ({ text }: { text: string }) => {
+          useEffect(() => {
+            log.push('mount')
+            return () => {
+              log.push('unmount')
+            }
+          }, [])
+          return <p class='page'>{text}</p>
+        }
+        const Content = ({ promise }: { promise: Promise<string> }) => <Child text={use(promise)} />
+        const Component = () => {
+          const [promise, _setPromise] = useState(Promise.resolve('a'))
+          setPromise = _setPromise
+          return (
+            <Suspense fallback={<span>loading</span>}>
+              <Content promise={promise} />
+            </Suspense>
+          )
+        }
+        render(<Component />, root)
+        await new Promise((resolve) => setTimeout(resolve))
+        await new Promise((resolve) => setTimeout(resolve))
+        expect(root.innerHTML).toBe('<p class="page">a</p>')
+        log.length = 0
+
+        setPromise(Promise.resolve('b'))
+        await new Promise((resolve) => setTimeout(resolve))
+        await new Promise((resolve) => setTimeout(resolve))
+        expect(root.innerHTML).toBe('<p class="page">b</p>')
+        expect(log).toEqual(['unmount', 'mount'])
+      })
+
+      it.each([null, false])('with use() and fallback={%s}', async (fallback) => {
+        let resolve: (value: number) => void = () => {}
+        const promise = new Promise<number>((_resolve) => (resolve = _resolve))
+        const Content = () => <p>{use(promise)}</p>
+        render(
+          <div>
+            <Suspense fallback={fallback}>
+              <Content />
+            </Suspense>
+          </div>,
+          root
+        )
+        expect(root.innerHTML).toBe('<div></div>')
+        resolve(1)
+        await new Promise((resolve) => setTimeout(resolve))
+        expect(root.innerHTML).toBe('<div><p>1</p></div>')
+      })
+
+      it('keeps the state of children with fallback={null} when they suspend again', async () => {
+        let mounts = 0
+        let setPromise: (p: Promise<string>) => void = () => {}
+        const Child = ({ text }: { text: string }) => {
+          const [id] = useState(() => ++mounts)
+          return (
+            <p>
+              {text} {id}
+            </p>
+          )
+        }
+        const Content = ({ promise }: { promise: Promise<string> }) => <Child text={use(promise)} />
+        const Component = () => {
+          const [promise, _setPromise] = useState(Promise.resolve('a'))
+          setPromise = _setPromise
+          return (
+            <Suspense fallback={null}>
+              <Content promise={promise} />
+            </Suspense>
+          )
+        }
+        render(<Component />, root)
+        await new Promise((resolve) => setTimeout(resolve))
+        const id = mounts
+        expect(root.innerHTML).toBe(`<p>a ${id}</p>`)
+        setPromise(Promise.resolve('b'))
+        await new Promise((resolve) => setTimeout(resolve))
+        await new Promise((resolve) => setTimeout(resolve))
+        expect(root.innerHTML).toBe(`<p>b ${id}</p>`)
       })
 
       it('with use() update', async () => {
@@ -324,6 +408,70 @@ function runner(
         resolve(1)
         await new Promise((resolve) => setTimeout(resolve))
         expect(root.innerHTML).toBe('<div>Error</div>')
+      })
+
+      describe('when the parent re-renders', () => {
+        const tick = () => new Promise((resolve) => setTimeout(resolve, 10))
+        const Row = ({ label, fail }: { label: string; fail?: boolean }) => {
+          if (fail) {
+            throw new Error(`boom ${label}`)
+          }
+          return <li>{label}</li>
+        }
+        const boundary = (label: string, fail: boolean, key?: string) => (
+          <ErrorBoundary key={key} fallback={<li>caught {label}</li>}>
+            <Row label={label} fail={fail} />
+          </ErrorBoundary>
+        )
+
+        it.each([false, true])('keeps one boundary in sync (child throws: %s)', async (fail) => {
+          let setCount: (count: number) => void = () => {}
+          const App = () => {
+            const [count, set] = useState(0)
+            setCount = set
+            return (
+              <ul>
+                <li>count {count}</li>
+                {boundary('x', fail)}
+              </ul>
+            )
+          }
+          render(<App />, root)
+          const row = fail ? 'caught x' : 'x'
+          expect(root.innerHTML).toBe(`<ul><li>count 0</li><li>${row}</li></ul>`)
+          for (const n of [1, 2]) {
+            setCount(n)
+            await tick()
+            expect(root.innerHTML).toBe(`<ul><li>count ${n}</li><li>${row}</li></ul>`)
+          }
+        })
+
+        it.each([
+          ['keyed', true],
+          ['unkeyed', false],
+        ])(
+          'keeps a %s list in sync after a row is removed and the rest reordered',
+          async (_, keyed) => {
+            let setItems: (items: string[]) => void = () => {}
+            const App = () => {
+              const [items, set] = useState(['a', 'b', 'c'])
+              setItems = set
+              return (
+                <ul>
+                  {items.map((item) => boundary(item, item === 'b', keyed ? item : undefined))}
+                </ul>
+              )
+            }
+            render(<App />, root)
+            expect(root.innerHTML).toBe('<ul><li>a</li><li>caught b</li><li>c</li></ul>')
+            setItems(['b', 'c'])
+            await tick()
+            expect(root.innerHTML).toBe('<ul><li>caught b</li><li>c</li></ul>')
+            setItems(['c', 'b'])
+            await tick()
+            expect(root.innerHTML).toBe('<ul><li>c</li><li>caught b</li></ul>')
+          }
+        )
       })
     })
   })

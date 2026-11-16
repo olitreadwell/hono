@@ -31,7 +31,11 @@ export const FormContext: Context<FormStatus> = createContext<FormStatus>({
 const actions: Set<Promise<unknown>> = new Set()
 export const registerAction = (action: Promise<unknown>) => {
   actions.add(action)
-  action.finally(() => actions.delete(action))
+  // not `finally()`: it would return a new promise that rejects too, with nobody to handle it
+  const remove = () => {
+    actions.delete(action)
+  }
+  action.then(remove, remove)
 }
 
 /**
@@ -55,7 +59,8 @@ export const useOptimistic = <T, N>(
 ): [T, (action: N) => void] => {
   const [optimisticState, setOptimisticState] = useState(state)
   if (actions.size > 0) {
-    Promise.all(actions).finally(() => {
+    // wait for every action to settle, even if one of them rejects
+    Promise.allSettled(actions).then(() => {
       setOptimisticState(state)
     })
   } else {

@@ -3,6 +3,22 @@ import { JSDOM } from 'jsdom'
 import { useActionState, useFormStatus, useOptimistic } from '.'
 import { render, useCallback, useState } from '..'
 
+// A rejected form action is not swallowed, so it surfaces as an unhandled rejection. Collect it instead of failing the run.
+const collectUnhandledRejections = async (run: () => Promise<void>) => {
+  const reasons: unknown[] = []
+  const saved = process.listeners('unhandledRejection')
+  process.removeAllListeners('unhandledRejection')
+  process.on('unhandledRejection', (reason) => reasons.push(reason))
+  try {
+    await run()
+    await new Promise((r) => setTimeout(r))
+  } finally {
+    process.removeAllListeners('unhandledRejection')
+    saved.forEach((listener) => process.on('unhandledRejection', listener))
+  }
+  return reasons
+}
+
 describe('Hooks', () => {
   beforeAll(() => {
     global.requestAnimationFrame = (cb) => setTimeout(cb)
@@ -124,6 +140,35 @@ describe('Hooks', () => {
         action: null,
       })
     })
+
+    it('should not stay pending when the action rejects', async () => {
+      let status: ReturnType<typeof useFormStatus> | undefined
+      const Status = () => {
+        status = useFormStatus()
+        return null
+      }
+      const error = new Error('failed')
+      const App = () => {
+        const action = useCallback(async () => {
+          await Promise.resolve()
+          throw error
+        }, [])
+        return (
+          <form action={action}>
+            <Status />
+            <button>Submit</button>
+          </form>
+        )
+      }
+
+      render(<App />, root)
+      const reasons = await collectUnhandledRejections(async () => {
+        root.querySelector('button')?.click()
+      })
+      expect(status?.pending).toBe(false)
+      // only the action's own error is reported, nothing extra from registerAction
+      expect(reasons).toEqual([error])
+    })
   })
 
   describe('useOptimistic', () => {
@@ -167,6 +212,35 @@ describe('Hooks', () => {
       expect(root.innerHTML).toBe(
         '<form><div>2</div><input type="text" name="name" value="updated"><button>Submit</button></form>'
       )
+    })
+
+    it('should revert when the action rejects', async () => {
+      const error = new Error('failed')
+      const App = () => {
+        const [count] = useState(0)
+        const [optimisticCount, setOptimisticCount] = useOptimistic(count, (_c, n: number) => n)
+        const action = useCallback(async () => {
+          setOptimisticCount(count + 1)
+          await Promise.resolve()
+          throw error
+        }, [])
+
+        return (
+          <form action={action}>
+            <div>{optimisticCount}</div>
+            <button>Submit</button>
+          </form>
+        )
+      }
+
+      render(<App />, root)
+      const reasons = await collectUnhandledRejections(async () => {
+        root.querySelector('button')?.click()
+        await Promise.resolve()
+        expect(root.querySelector('div')?.textContent).toBe('1')
+      })
+      expect(root.querySelector('div')?.textContent).toBe('0')
+      expect(reasons).toEqual([error])
     })
   })
 })
