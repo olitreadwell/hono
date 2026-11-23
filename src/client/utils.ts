@@ -9,18 +9,25 @@ import type { ClientResponse, FilterClientResponseByStatusCode, ObjectType } fro
 export { DetailedError }
 
 export const mergePath = (base: string, path: string) => {
-  base = base.replace(/\/+$/, '')
-  base = base + '/'
+  let end = base.length
+  while (base[end - 1] === '/') {
+    end--
+  }
   path = path.replace(/^\/+/, '')
-  return base + path
+  return base.slice(0, end) + '/' + path
 }
 
+const networkPathRegExp = /^(?:[/\\][\t\n\r]*){2}/
+
 export const replaceUrlParam = (urlString: string, params: Record<string, string | undefined>) => {
+  const isNetworkPath = networkPathRegExp.test(urlString)
   for (const [k, v] of Object.entries(params)) {
     const reg = new RegExp('/:' + k + '(?:{[^/]+})?\\??(?=/|$)')
     urlString = urlString.replace(reg, () => (v ? `/${v}` : ''))
   }
-  return urlString
+  return !isNetworkPath && networkPathRegExp.test(urlString)
+    ? urlString.replace(/^[/\\\t\n\r]+/, '/')
+    : urlString
 }
 
 export const buildSearchParams = (query: Record<string, string | string[]>) => {
