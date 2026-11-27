@@ -73,12 +73,12 @@ describe('url', () => {
 
     it('regex pattern', () => {
       const res = getPattern(':id{[0-9]+}')
-      expect(res).toEqual([':id{[0-9]+}', 'id', /^[0-9]+$/])
+      expect(res).toEqual([':id{[0-9]+}', 'id', /^(?:[0-9]+)$/])
     })
 
     it('regex pattern with next', () => {
       const res = getPattern(':id{[0-9]+}', 'next')
-      expect(res).toEqual([':id{[0-9]+}#next', 'id', /^[0-9]+(?=\/next)/])
+      expect(res).toEqual([':id{[0-9]+}#next', 'id', /^(?:[0-9]+)(?=\/next)/])
     })
 
     it('wildcard', () => {
@@ -125,6 +125,17 @@ describe('url', () => {
       'x://a/:/hello', // unknown schema
     ])('getPath - %s', (url) => {
       expect(getPath(new Request(url))).toBe(new URL(url).pathname)
+    })
+
+    it.each([
+      ['/public/admin/secret', '/public/admin/secret'],
+      ['/a/admin', '/a/admin'],
+      ['/a:b/admin/secret', '/a:b/admin/secret'],
+      ['/public/admin?name=foo#section', '/public/admin'],
+      ['/public/%61dmin', '/public/admin'],
+      ['/', '/'],
+    ])('getPath - URL without the scheme and the host - %s', (url, expected) => {
+      expect(getPath({ url } as Request)).toBe(expected)
     })
 
     it('getPath - with fragment', () => {
